@@ -23,7 +23,6 @@ android.allow_backup = True
 android.enable_androidx = True
 android.build_tools_version = 34.0.0
 android.accept_sdk_license = True
-android.python_version = 3.13
 
 [buildozer]
 log_level = 2
