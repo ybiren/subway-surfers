@@ -49,8 +49,7 @@ def _show_crash(tb_text: str):
 def _write_crash_file(tb: str):
     """Fallback: write traceback to a readable file when the UI isn't up yet."""
     try:
-        path = '/sdcard/subway_crash.txt' if platform == 'android' else 'crash.txt'
-        with open(path, 'w') as f:
+        with open(_CRASH_FILE, 'w') as f:
             f.write(tb)
     except Exception:
         pass
@@ -78,6 +77,21 @@ def _excepthook(exc_type, exc_val, exc_tb):
 
 
 sys.excepthook = _excepthook
+
+_CRASH_FILE = '/sdcard/subway_crash.txt' if platform == 'android' else 'crash.txt'
+
+
+def _check_previous_crash(dt):
+    """On next launch, show crash info written by the previous run."""
+    try:
+        with open(_CRASH_FILE) as f:
+            tb = f.read()
+        os.remove(_CRASH_FILE)
+        if tb.strip():
+            _show_crash('CRASH FROM PREVIOUS RUN:\n\n' + tb)
+    except FileNotFoundError:
+        pass
+
 
 if platform == 'android':
     from android.permissions import request_permissions, Permission
@@ -115,6 +129,7 @@ class SubwayApp(App):
         )
 
     def build(self):
+        Clock.schedule_once(_check_previous_crash, 0.5)
         self.sm = ScreenManager(transition=FadeTransition())
 
         self.login_screen   = LoginScreen(self)
