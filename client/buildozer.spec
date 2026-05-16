@@ -8,6 +8,8 @@ source.include_exts = py,png,jpg,kv,atlas
 
 version = 1.0
 
+icon.filename = %(source.dir)s/icon.png
+
 # No opencv — frame encoding uses Pillow only
 requirements = python3,kivy,pillow,websockets,android
 

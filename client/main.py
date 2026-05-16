@@ -2,15 +2,39 @@
 import os
 import sys
 import traceback
+
+# Step logger — writes to app private dir which is always writable
+_LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'startup.log')
+
+def _step(msg):
+    try:
+        with open(_LOG_FILE, 'a') as f:
+            f.write(msg + '\n')
+    except Exception:
+        pass
+
+# Clear previous log and start fresh
+try:
+    open(_LOG_FILE, 'w').close()
+except Exception:
+    pass
+
+_step('1: imports started')
+
 # Must be set before kivy imports
 os.environ.setdefault('KIVY_ORIENTATION', 'Portrait')
 
+_step('2: importing kivy.app')
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, FadeTransition
+from kivy.uix.screenmanager import ScreenManager, FadeTransition
+_step('3: kivy.uix.screenmanager ok')
 from kivy.core.window import Window
+_step('4: kivy.core.window ok')
 from kivy.clock import Clock
 from kivy.utils import platform
 from kivy.base import ExceptionHandler, ExceptionManager
+_step('5: all kivy imports ok')
 
 
 def _show_crash(tb_text: str):
@@ -77,6 +101,7 @@ def _excepthook(exc_type, exc_val, exc_tb):
 
 
 sys.excepthook = _excepthook
+_step('6: crash handlers installed')
 
 _CRASH_FILE = '/sdcard/subway_crash.txt' if platform == 'android' else 'crash.txt'
 
@@ -91,9 +116,17 @@ def _check_previous_crash(dt):
             _show_crash('CRASH FROM PREVIOUS RUN:\n\n' + tb)
     except FileNotFoundError:
         pass
+    # Also show the startup log
+    try:
+        with open(_LOG_FILE) as f:
+            log = f.read()
+        _show_crash('STARTUP LOG (last run):\n\n' + log)
+    except FileNotFoundError:
+        pass
 
 
 if platform == 'android':
+    _step('7: requesting permissions')
     from android.permissions import request_permissions, Permission
     request_permissions([
         Permission.CAMERA,
@@ -102,14 +135,21 @@ if platform == 'android':
         Permission.WRITE_EXTERNAL_STORAGE,
     ])
 
+_step('8: importing screens')
 from screens.login import LoginScreen
+_step('9: login ok')
 from screens.connect import ConnectScreen
+_step('10: connect ok')
 from screens.prepare import PrepareScreen
+_step('11: prepare ok')
 from screens.game import GameScreen
+_step('12: game ok')
 from utils.ws_client import WSClient
+_step('13: ws_client ok')
 
 # Dark background
 Window.clearcolor = (0.06, 0.06, 0.12, 1)
+_step('14: all imports done — starting app')
 
 
 class SubwayApp(App):

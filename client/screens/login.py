@@ -27,7 +27,7 @@ class LoginScreen(Screen):
             size_hint_y=None, height=56,
         ))
         root.add_widget(Label(
-            text='Motion Controller',
+            text='Motion Controller 2222',
             font_size='17sp', color=(0.75, 0.75, 0.75, 1),
             size_hint_y=None, height=32,
         ))
