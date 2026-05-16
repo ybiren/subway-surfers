@@ -9,7 +9,7 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 1.0
 
 # No opencv — frame encoding uses Pillow only
-requirements = python3,kivy==2.3.0,pillow,websockets,android
+requirements = python3,kivy,pillow,websockets,android
 
 orientation = portrait
 
