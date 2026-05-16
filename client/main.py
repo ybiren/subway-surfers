@@ -1,5 +1,7 @@
 """Kivy Android client entry point."""
 import os
+import sys
+import traceback
 # Must be set before kivy imports
 os.environ.setdefault('KIVY_ORIENTATION', 'Portrait')
 
@@ -8,6 +10,71 @@ from kivy.uix.screenmanager import ScreenManager, FadeTransition
 from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.utils import platform
+from kivy.base import ExceptionHandler, ExceptionManager
+
+
+def _show_crash(tb_text: str):
+    from kivy.uix.popup import Popup
+    from kivy.uix.boxlayout import BoxLayout
+    from kivy.uix.label import Label
+    from kivy.uix.scrollview import ScrollView
+    from kivy.uix.button import Button
+
+    lbl = Label(
+        text=tb_text,
+        font_size='11sp',
+        size_hint_y=None,
+        color=(1, 0.35, 0.35, 1),
+        halign='left',
+        valign='top',
+    )
+    lbl.bind(width=lambda inst, w: setattr(inst, 'text_size', (w, None)))
+    lbl.bind(texture_size=lbl.setter('size'))
+
+    sv = ScrollView()
+    sv.add_widget(lbl)
+
+    box = BoxLayout(orientation='vertical', spacing=8, padding=8)
+    box.add_widget(sv)
+
+    close_btn = Button(text='Close', size_hint_y=None, height=48,
+                       background_color=(0.5, 0.1, 0.1, 1), background_normal='')
+    popup = Popup(title='Crash — exception details', content=box,
+                  size_hint=(0.97, 0.88), auto_dismiss=False)
+    close_btn.bind(on_press=popup.dismiss)
+    box.add_widget(close_btn)
+    popup.open()
+
+
+class _KivyCrashHandler(ExceptionHandler):
+    def handle_exception(self, inst):
+        Clock.schedule_once(lambda dt: _show_crash(traceback.format_exc()))
+        return ExceptionManager.PASS
+
+
+ExceptionManager.add_handler(_KivyCrashHandler())
+
+_orig_excepthook = sys.excepthook
+
+
+def _excepthook(exc_type, exc_val, exc_tb):
+    tb = ''.join(traceback.format_exception(exc_type, exc_val, exc_tb))
+    try:
+        Clock.schedule_once(lambda dt: _show_crash(tb))
+    except Exception:
+        _orig_excepthook(exc_type, exc_val, exc_tb)
+
+
+sys.excepthook = _excepthook
+
+if platform == 'android':
+    from android.permissions import request_permissions, Permission
+    request_permissions([
+        Permission.CAMERA,
+        Permission.INTERNET,
+        Permission.READ_EXTERNAL_STORAGE,
+        Permission.WRITE_EXTERNAL_STORAGE,
+    ])
 
 from screens.login import LoginScreen
 from screens.connect import ConnectScreen

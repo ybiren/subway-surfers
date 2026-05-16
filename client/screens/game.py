@@ -5,7 +5,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
-from kivy.uix.camera import Camera
 from kivy.graphics import Color, Rectangle
 from kivy.clock import Clock
 
@@ -19,19 +18,16 @@ class GameScreen(Screen):
         self.paused = False
         self._frame_event = None
         self._alert_event = None
+        self.camera = None
         self._build_ui()
 
     def _build_ui(self):
         root = FloatLayout()
 
-        # Camera (full background)
-        self.camera = Camera(
-            play=False,
-            resolution=(640, 480),
-            size_hint=(1, 1),
-            pos_hint={'center_x': 0.5, 'center_y': 0.5},
-        )
-        root.add_widget(self.camera)
+        # Camera is created lazily in on_enter after permissions are granted
+        self._camera_container = Widget(size_hint=(1, 1))
+        root.add_widget(self._camera_container)
+        self._root_layout = root
 
         # Red edge overlay (shown when out of frame)
         self.alert_overlay = Widget(size_hint=(1, 1))
@@ -153,6 +149,16 @@ class GameScreen(Screen):
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     def on_enter(self):
+        if self.camera is None:
+            from kivy.uix.camera import Camera
+            self.camera = Camera(
+                play=False,
+                resolution=(640, 480),
+                size_hint=(1, 1),
+                pos_hint={'center_x': 0.5, 'center_y': 0.5},
+            )
+            self._root_layout.remove_widget(self._camera_container)
+            self._root_layout.add_widget(self.camera, index=len(self._root_layout.children))
         self.camera.play = True
         self._frame_event = Clock.schedule_interval(self._send_frame, 1 / 15)
         self.end_panel.opacity = 0
