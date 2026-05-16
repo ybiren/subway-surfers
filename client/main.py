@@ -46,9 +46,20 @@ def _show_crash(tb_text: str):
     popup.open()
 
 
+def _write_crash_file(tb: str):
+    """Fallback: write traceback to a readable file when the UI isn't up yet."""
+    try:
+        path = '/sdcard/subway_crash.txt' if platform == 'android' else 'crash.txt'
+        with open(path, 'w') as f:
+            f.write(tb)
+    except Exception:
+        pass
+
+
 class _KivyCrashHandler(ExceptionHandler):
     def handle_exception(self, inst):
-        Clock.schedule_once(lambda dt: _show_crash(traceback.format_exc()))
+        # Called from Kivy's main thread — show popup immediately, no Clock needed
+        _show_crash(traceback.format_exc())
         return ExceptionManager.PASS
 
 
@@ -59,8 +70,9 @@ _orig_excepthook = sys.excepthook
 
 def _excepthook(exc_type, exc_val, exc_tb):
     tb = ''.join(traceback.format_exception(exc_type, exc_val, exc_tb))
+    _write_crash_file(tb)          # always write — works even before event loop
     try:
-        Clock.schedule_once(lambda dt: _show_crash(tb))
+        _show_crash(tb)            # try popup if Kivy window exists
     except Exception:
         _orig_excepthook(exc_type, exc_val, exc_tb)
 

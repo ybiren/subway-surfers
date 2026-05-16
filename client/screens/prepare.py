@@ -5,7 +5,6 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
-from kivy.uix.camera import Camera
 from kivy.clock import Clock
 
 
@@ -16,19 +15,16 @@ class PrepareScreen(Screen):
         self.pose_visible = False
         self.recording = False
         self._frame_event = None
+        self.camera = None
         self._build_ui()
 
     def _build_ui(self):
         root = FloatLayout()
 
-        # Camera preview (full background)
-        self.camera = Camera(
-            play=False,
-            resolution=(640, 480),
-            size_hint=(1, 1),
-            pos_hint={'center_x': 0.5, 'center_y': 0.5},
-        )
-        root.add_widget(self.camera)
+        # Camera created lazily in on_enter after permissions are granted
+        self._camera_container = Widget(size_hint=(1, 1))
+        root.add_widget(self._camera_container)
+        self._root_layout = root
 
         # Top HUD
         top_bar = BoxLayout(
@@ -92,6 +88,16 @@ class PrepareScreen(Screen):
     # ── Screen lifecycle ──────────────────────────────────────────────────────
 
     def on_enter(self):
+        if self.camera is None:
+            from kivy.uix.camera import Camera
+            self.camera = Camera(
+                play=False,
+                resolution=(640, 480),
+                size_hint=(1, 1),
+                pos_hint={'center_x': 0.5, 'center_y': 0.5},
+            )
+            self._root_layout.remove_widget(self._camera_container)
+            self._root_layout.add_widget(self.camera, index=len(self._root_layout.children))
         self.camera.play = True
         self._frame_event = Clock.schedule_interval(self._send_frame, 1 / 15)
 
