@@ -1,8 +1,14 @@
 import sqlite3
 import bcrypt
 import os
+import sys
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'users.db')
+if getattr(sys, 'frozen', False):
+    _DIR = os.path.dirname(sys.executable)
+else:
+    _DIR = os.path.dirname(os.path.abspath(__file__))
+
+DB_PATH = os.path.join(_DIR, 'users.db')
 
 
 def init_db():

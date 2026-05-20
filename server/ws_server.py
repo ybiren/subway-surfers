@@ -37,6 +37,8 @@ class SubwayServer:
         self.pair_code: str | None = None
         self.detector = PoseDetector()
         self._paused_by_server = False
+        self._no_pose_frames = 0
+        self._NO_POSE_LIMIT = 10      # frames before auto-pause
 
         self.ip = _get_local_ip()
         self._generate_pair_code()
@@ -102,14 +104,19 @@ class SubwayServer:
         if frame is None:
             return
 
-        gesture, pose_visible, _ = self.detector.process(frame)
+        gesture, pose_visible, annotated, landmarks = self.detector.process(frame)
 
-        # Auto-pause when player leaves frame
-        if not pose_visible and not self._paused_by_server:
-            self._paused_by_server = True
-            self.cmd_q.put({'type': 'game_cmd', 'cmd': 'pause'})
-        elif pose_visible and self._paused_by_server:
-            self._paused_by_server = False
+        # Auto-pause only after 10 consecutive bad frames; auto-resume when pose returns
+        if not pose_visible:
+            self._no_pose_frames += 1
+            if self._no_pose_frames >= self._NO_POSE_LIMIT and not self._paused_by_server:
+                self._paused_by_server = True
+                self.cmd_q.put({'type': 'game_cmd', 'cmd': 'pause'})
+        else:
+            self._no_pose_frames = 0
+            if self._paused_by_server:
+                self._paused_by_server = False
+                self.cmd_q.put({'type': 'game_cmd', 'cmd': 'resume'})
 
         if gesture:
             self.cmd_q.put({'type': 'game_cmd', 'cmd': gesture})
@@ -118,6 +125,7 @@ class SubwayServer:
             'type': 'pose_feedback',
             'pose_visible': pose_visible,
             'gesture': gesture,
+            'landmarks': landmarks,
         }
         try:
             await ws.send(json.dumps(feedback))

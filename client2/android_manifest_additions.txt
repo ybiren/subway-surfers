@@ -1,0 +1,8 @@
+Add these lines inside <manifest> in android/app/src/main/AndroidManifest.xml:
+
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-feature android:name="android.hardware.camera" android:required="true"/>
+
+Also set screen orientation inside <activity ...>:
+    android:screenOrientation="portrait"
